@@ -16,8 +16,9 @@ class DropletDB:
 	def initialize():
 		con = DropletDB.get()
 		cur = con.cursor()
-		cur.execute('''CREATE TABLE IF NOT EXISTS humidity (id INTEGER PRIMARY KEY, sensor_id INT, value FLOAT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 		cur.execute('''CREATE TABLE IF NOT EXISTS sensors (id INTEGER PRIMARY KEY, type INT, name VARCHAR(50))''')
+		cur.execute('''CREATE TABLE IF NOT EXISTS humidity (id INTEGER PRIMARY KEY, sensor_id INT, value FLOAT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+		cur.execute('''CREATE TABLE IF NOT EXISTS irrigations (id INTEGER PRIMARY KEY, pump_id INT, amount_ml INT, timestamp TIMESTAMP DEFAULT CURRENT TIMESTAMP)''')
 		con.commit()
 
 	@staticmethod
