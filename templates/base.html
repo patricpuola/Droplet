@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Droplet {% block title %}{% endblock %}</title>
+        <link href="/static/main.css" rel="stylesheet">
+<!--        <link href="/static/fontawesome/css/all.css" rel="stylesheet"> -->
+<!--        <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">  -->
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        <div id="main_container">
+            <div id="title">Droplet</div>
+            <div id="subtitle">Irrigation System</div>
+            <div id="content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </body>
+</html>

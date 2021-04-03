@@ -1,0 +1,14 @@
+body{
+	font-family: sans-serif;
+	background-color: ghostwhite;
+	color: dimgray;
+}
+
+#title{
+	text-align: center;
+}
+
+#subtitle{
+	text-align: center;
+	font-size: 0.75em;
+}

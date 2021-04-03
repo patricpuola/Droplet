@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}WebUI{% endblock %}
+{% block content %}
+<script type="text/javascript" src="/static/chart.min.js"></script>
+<script type="text/javascript">
+	window.addEventListener('DOMContentLoaded', (event) => {
+		{% for sensor in sensor_data %}
+			const sensor_readings_{{ sensor.id }} = [
+				{% for reading in sensor['data'] %}
+					{{ reading.value }}{% if not loop.last %},{% endif %}
+				{% endfor %}
+			];
+			const sensor_labels_{{ sensor.id }} = [
+				{% for reading in sensor['data'] %}
+					"{{ reading.timestamp_formatted }}"{% if not loop.last %},{% endif %}
+				{% endfor %}
+			]
+			new Chart(document.getElementById('sensor_chart_{{ sensor.id }}'), {
+				type: 'line',
+				data: {
+					labels: sensor_labels_{{ sensor.id }}.reverse(),
+					datasets: [{
+						label: "{{ sensor.name }}",
+						data: sensor_readings_{{ sensor.id }}.reverse(),
+						backgroundColor: [
+							'dodgerblue'
+						],
+						borderColor:[
+							'skyblue'
+						]
+					}]
+
+				},
+				options: {
+					indexAxis: 'x',
+					scales: {
+						y: {
+							beginAtZero: true
+						}
+					}
+				}
+			})
+		{% endfor %}
+	});
+</script>
+<h2>Plant Humidity</h2>
+<style>
+	.value::after{
+		content: " %";
+	}
+
+	.timestamp{
+		font-size: 0.5em;
+		white-space: pre-wrap;
+	}
+</style>
+<table id="data_table">
+<tbody>
+{% for sensor in sensor_data %}
+<tr><td>{{ sensor.name }}</td><td class="value">{{ sensor['data'][0].value }}</td><td class="timestamp">{{ sensor['data'][0].timestamp }}</td></tr>
+<tr><td colspan="3"><canvas id="sensor_chart_{{ sensor.id }}" class="sensor_chart"></canvas></td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}
