@@ -48,10 +48,10 @@ def analogInput(channel):
 	return data
 
 def collectHumidity():
-	moisture_basil = mapValue(value=analogInput(conf.PIN_BASIL), precision=1, invert=True)
-	DropletDB.add(conf.SENSOR_BASIL, moisture_basil)
-	moisture_peppermint = mapValue(value=analogInput(conf.PIN_PEPPERMINT), precision=1, invert=True)
-	DropletDB.add(conf.SENSOR_PEPPERMINT, moisture_peppermint)
+	moisture_basil = mapValue(value=analogInput(conf.PIN_HUMIDITY_BASIL), precision=1, invert=True)
+	DropletDB.addReading(conf.PLANT_BASIL, moisture_basil)
+	moisture_peppermint = mapValue(value=analogInput(conf.PIN_HUMIDITY_PEPPERMINT), precision=1, invert=True)
+	DropletDB.addReading(conf.PLANT_PEPPERMINT, moisture_peppermint)
 
 if "humidity" in flags:
 	collectHumidity()

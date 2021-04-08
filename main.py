@@ -7,19 +7,26 @@ import sqlite3
 import flask
 import datetime
 from db import DropletDB
+import Plant
 
 app = flask.Flask(__name__)
 
 @app.route('/')
 def monitor():
-	sensor_data = DropletDB.getAll()
+	plantdata = DropletDB.getAll()
 	in_format = '%Y-%m-%d %H:%M:%S'
 	out_format = '%H:%M'
-	for sensor in sensor_data:
-		for reading in sensor['data']:
+	for plant in plantdata:
+		for reading in plant['humidity']['data']:
 			mysql_timestamp = datetime.datetime.strptime(reading['timestamp'], in_format)
 			reading['timestamp_formatted'] = mysql_timestamp.strftime(out_format)
-	return flask.render_template('index.html', sensor_data=sensor_data)
+	plant_ids = DropletDB.getPlantIds()
+	plants = []
+	for pid in plant_ids:
+		plant = Plant.Plant(pid)
+		plant.chart_data = plant.getChartAll()
+		plants.append(plant)
+	return flask.render_template('index.html', plantdata=plantdata, plants=plants)
 
 if __name__ == '__main__':
 	app.debug = True

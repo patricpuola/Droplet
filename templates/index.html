@@ -4,38 +4,54 @@
 <script type="text/javascript" src="/static/chart.min.js"></script>
 <script type="text/javascript">
 	window.addEventListener('DOMContentLoaded', (event) => {
-		{% for sensor in sensor_data %}
-			const sensor_readings_{{ sensor.id }} = [
-				{% for reading in sensor['data'] %}
-					{{ reading.value }}{% if not loop.last %},{% endif %}
-				{% endfor %}
+		{% for plant in plants %}
+			const sensor_readings_{{ plant.id }} = [
+				{% for reading in plant.humidity['readings'] %}{{ reading.value }}{% if not loop.last %},{% endif %}{% endfor %}
 			];
-			const sensor_labels_{{ sensor.id }} = [
-				{% for reading in sensor['data'] %}
-					"{{ reading.timestamp_formatted }}"{% if not loop.last %},{% endif %}
-				{% endfor %}
-			]
-			new Chart(document.getElementById('sensor_chart_{{ sensor.id }}'), {
-				type: 'line',
+
+			new Chart(document.getElementById('sensor_chart_{{ plant.id }}'), {
 				data: {
-					labels: sensor_labels_{{ sensor.id }}.reverse(),
-					datasets: [{
-						label: "{{ sensor.name }}",
-						data: sensor_readings_{{ sensor.id }}.reverse(),
-						backgroundColor: [
-							'dodgerblue'
-						],
-						borderColor:[
-							'skyblue'
-						]
-					}]
+					labels: [{% for label in plant['chart_data'][0] %}"{{ label }}"{% if not loop.last %},{% endif %}{% endfor %}],
+					datasets: [
+						{% for dataset in plant['chart_data'][1] %}
+						{
+							label: "{{ dataset }}",
+							data: [
+								{% for point in plant['chart_data'][1][dataset] %}{{ point if point is not none else 'null'}}{% if not loop.last %},{% endif %}{% endfor%}
+							],
+							type: {% if dataset == 'irrigation' %}'bar'{% else %}'line'{% endif %},
+							backgroundColor: [
+								{% if dataset == 'humidity' %}
+								'rgba(30,144,255,0.5)'
+								{% else %}
+								'mediumspringgreen'
+								{% endif %}
+							],
+							borderColor:[
+								'cornflowerblue'
+							],
+							{% if dataset == 'humidity' %}
+							fill: 'origin',
+							pointHitRadius: 50,
+							pointHoverBorderWidth: 10,
+							pointHoverRadius: 15
+							{% endif %}
+						}
+						{% if not loop.last %},{% endif %}
+						{% endfor %}
+					]
 
 				},
 				options: {
 					indexAxis: 'x',
 					scales: {
 						y: {
-							beginAtZero: true
+							min: 0,
+							max: 100,
+							title:{
+								display: true,
+								text: "Soil humidity % / Irrigation ml"
+							}
 						}
 					}
 				}
@@ -43,7 +59,6 @@
 		{% endfor %}
 	});
 </script>
-<h2>Plant Humidity</h2>
 <style>
 	.value::after{
 		content: " %";
@@ -54,11 +69,11 @@
 		white-space: pre-wrap;
 	}
 </style>
-<table id="data_table">
+<table id="data_table" width="100%">
 <tbody>
-{% for sensor in sensor_data %}
-<tr><td>{{ sensor.name }}</td><td class="value">{{ sensor['data'][0].value }}</td><td class="timestamp">{{ sensor['data'][0].timestamp }}</td></tr>
-<tr><td colspan="3"><canvas id="sensor_chart_{{ sensor.id }}" class="sensor_chart"></canvas></td></tr>
+{% for plant in plantdata %}
+<tr><td>{{ plant.name }}</td><td class="value">{{ plant['humidity']['data'][0].value }}</td></tr>
+<tr><td colspan="2"><canvas id="sensor_chart_{{ plant.id }}" class="sensor_chart"></canvas></td></tr>
 {% endfor %}
 </tbody>
 </table>
