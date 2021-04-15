@@ -3,28 +3,54 @@
 {% block content %}
 <script type="text/javascript" src="/static/chart.min.js"></script>
 <script type="text/javascript">
+	function getButton(icon_classes, classes, id, attributes){
+		if (typeof icon_classes != 'object'){
+			icon_classes = [];
+		}
+		if (typeof classes != 'object'){
+			classes = [];
+		}
+		if (typeof attributes != 'object'){
+			attributes = {}
+		}
+		const button = document.createElement('button');
+		button.setAttribute('type', 'button');
+		for (var i = 0; i < classes.length; i++){
+			button.classList.add(classes[i]);
+		}
+		const icon = document.createElement('i');
+		for (var i = 0; i < icon_classes.length; i++){
+			icon.classList.add(icon_classes[i]);
+		}
+
+		for (key in attributes){
+			button.setAttribute(key, attributes[key]);
+		}
+
+		button.id = id;
+		button.appendChild(icon);
+		return button;
+	}
+
 	window.addEventListener('DOMContentLoaded', (event) => {
 		{% for plant in plants %}
-			const sensor_readings_{{ plant.id }} = [
-				{% for reading in plant.humidity['readings'] %}{{ reading.value }}{% if not loop.last %},{% endif %}{% endfor %}
-			];
-
 			new Chart(document.getElementById('sensor_chart_{{ plant.id }}'), {
 				data: {
 					labels: [{% for label in plant['chart_data'][0] %}"{{ label }}"{% if not loop.last %},{% endif %}{% endfor %}],
 					datasets: [
-						{% for dataset in plant['chart_data'][1] %}
+						{% for dataset in plant['chart_data'][1]|reverse %}
 						{
 							label: "{{ dataset }}",
 							data: [
 								{% for point in plant['chart_data'][1][dataset] %}{{ point if point is not none else 'null'}}{% if not loop.last %},{% endif %}{% endfor%}
 							],
 							type: {% if dataset == 'irrigation' %}'bar'{% else %}'line'{% endif %},
+							{% if dataset == 'irrigation' %}barPercentage: 2,{% endif %}
 							backgroundColor: [
 								{% if dataset == 'humidity' %}
 								'rgba(30,144,255,0.5)'
 								{% else %}
-								'mediumspringgreen'
+								'rgba(152,251,152,0.7)'
 								{% endif %}
 							],
 							borderColor:[
@@ -57,9 +83,62 @@
 				}
 			})
 		{% endfor %}
+
+		const edits = document.getElementsByClassName("trigger_edit");
+		for (var i = 0; i < edits.length; i++){
+			edits[i].addEventListener('click', function(e){
+				const cont = this.parentElement;
+				while (cont.firstChild){
+					cont.removeChild(cont.firstChild);
+				}
+				let trigger_id = this.getAttribute('data-trigger-id');
+				const save = getButton(['fas','fa-save'], ['droplet_button'], 'trigger_save_'+trigger_id, {'data-trigger-id':trigger_id})
+				cont.appendChild(save);
+				const discard = getButton(['fas','fa-window-close'], ['droplet_button'], 'trigger_discard_'+trigger_id, {'data-trigger-id':trigger_id});
+				cont.appendChild(discard);
+				let trigger_values = document.getElementById("trigger_"+trigger_id).getElementsByClassName("trigger_value");
+				for (var j = 0; j < trigger_values.length; j++){
+					let value = trigger_values[j].innerText;
+					let input = document.createElement('input');
+					input.setAttribute('type', 'number');
+					for (k = 0; k < trigger_values[j].classList.length; k++){
+						input.classList.add(trigger_values[j].classList[k]);
+					}
+					input.value = value;
+					input.setAttribute("data-original-value", value);
+					input.setAttribute("required", "");
+					trigger_values[j].replaceWith(input);
+				}
+
+				discard.addEventListener("click", function(ev){
+					let trigger_id = this.getAttribute("data-trigger-id");
+					let trigger_inputs = document.getElementById("trigger_"+trigger_id).getElementsByClassName("trigger_value");
+					for (var j = 0; j < trigger_inputs.length; j++){
+						let value = trigger_inputs[j].getAttribute("data-original-value");
+						let span = document.createElement("span");
+						for (k = 0; k < trigger_inputs[j].classList.length; k++){
+							span.classList.add(trigger_inputs[j].classList[k]);
+						}
+						span.innerHTML = value;
+						trigger_inputs[j].replaceWith(span);
+					}
+				});
+			})
+		}
 	});
 </script>
 <style>
+	#main{
+		display: grid;
+		grid-template-columns: auto;
+	}
+
+	#main > div{
+		justify-self: center;
+		width:100%;
+		max-width:50em;
+	}
+
 	.value::after{
 		content: " %";
 	}
@@ -68,13 +147,66 @@
 		font-size: 0.5em;
 		white-space: pre-wrap;
 	}
+
+	.trigger_table td, .trigger_table th{
+		padding: 0.25em 0.5em;
+	}
+
+	.droplet_button{
+		color: var(--main-text);
+		font-size: 1em;
+		background: none;
+		border: none;
+		cursor: pointer;
+	}
+
+	.droplet_button:hover{
+		color: var(--main-text-highlight);
+	}
+
+	.droplet_button:active{
+		transform: translateY(0.05em);
+	}
+
+	.threshold::after{
+		content: " %";
+	}
+
+	.amount_ml::after{
+		content: " ml";
+	}
+
+	.wait_period_mins::after{
+		content: " min";
+	}
+
+	input.trigger_value{
+		font-size: 1em;
+		max-width: 75%;
+		width: 5em;
+		text-align: center;
+	}
 </style>
-<table id="data_table" width="100%">
-<tbody>
+<div id="main">
 {% for plant in plantdata %}
-<tr><td>{{ plant.name }}</td><td class="value">{{ plant['humidity']['data'][0].value }}</td></tr>
-<tr><td colspan="2"><canvas id="sensor_chart_{{ plant.id }}" class="sensor_chart"></canvas></td></tr>
+<div>
+	<div>
+		{{ plant.name }} <span class="value">{{ plant['humidity']['data'][0].value }}</span>
+		<table class="trigger_table">
+		<tbody>
+			<tr><th>Threshold</th><th>Amount</th><th>Wait period</th><th></th></tr>
+			{% for trigger in plant['humidity']['triggers'] %}
+			<tr id="trigger_{{ trigger['id'] }}">
+				<td class="threshold"><span class="trigger_value">{{ trigger['threshold'] }}</span></td><td class="amount_ml"><span class="trigger_value">{{ trigger['amount_ml'] }}</span></td><td class="wait_period_mins"><span class="trigger_value">{{ trigger['wait_period_mins'] }}</span></td><td><button type="button" class="trigger_edit droplet_button" data-trigger-id="{{ trigger['id'] }}"><i class="fas fa-edit"></i></button></td>
+			</tr>
+			{% endfor %}
+		</tbody>
+		</table>
+	</div>
+	<div>
+		<canvas id="sensor_chart_{{ plant.id }}" class="sensor_chart"></canvas>
+	</div>
+</div>
 {% endfor %}
-</tbody>
-</table>
+</div>
 {% endblock %}

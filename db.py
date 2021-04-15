@@ -52,14 +52,30 @@ class DropletDB:
 		plant_rows = cur.fetchall()
 
 		for plant in plant_rows:
-			plants.append({'id':plant[0], 'name':plant[1], 'pump_id':plant[2], 'humidity':{'sensor_id':plant[3], 'sensor_pin':None, 'data':[]}, 'light':{'sensor_id':plant[4], 'sensor_pin':None, 'data':[]}})
+			plants.append({'id':plant[0], 'name':plant[1], 'pump_id':plant[2], 'humidity':{'sensor_id':plant[3], 'sensor_pin':None, 'data':[], 'triggers':[]}, 'light':{'sensor_id':plant[4], 'sensor_pin':None, 'data':[], 'triggers':[]}})
 
 		for plant in plants:
+
+			# Get humidity data
 			params = (plant['humidity']['sensor_id'], limit)
 			cur.execute("SELECT value, datetime(timestamp, 'localtime') as timestamp FROM readings WHERE sensor_id = ? ORDER BY timestamp DESC LIMIT ?", params)
 			humidity_rows = cur.fetchall()
 			for row in humidity_rows:
 				plant['humidity']['data'].append({'value':row[0], 'timestamp': row[1]})
+
+			# Get triggers for humidity and light sensors
+			if plant['humidity']['sensor_id'] is not None:
+				params = (plant['humidity']['sensor_id'],)
+				cur.execute("SELECT id, pump_id, amount_ml, sensor_id, threshold, wait_period_mins FROM triggers WHERE sensor_id = ?", params)
+				triggers = cur.fetchall()
+				for trigger in triggers:
+					plant['humidity']['triggers'].append({'id':trigger[0], 'pump_id':trigger[1], 'amount_ml':trigger[2], 'sensor_id':trigger[3], 'threshold':trigger[4], 'wait_period_mins':trigger[5]})
+			if plant['light']['sensor_id'] is not None:
+				params = (plant['light']['sensor_id'],)
+				cur.execute("SELECT id, pump_id, amount_ml, sensor_id, threshold, wait_period_mins FROM triggers WHERE sensor_id = ?", params)
+				triggers = cur.fetchall()
+				for trigger in triggers:
+					plant['light']['triggers'].append({'id':trigger[0], 'pump_id':trigger[1], 'amount_ml':trigger[2], 'sensor_id':trigger[3], 'threshold':trigger[4], 'wait_period_mins':trigger[5]})
 		return plants
 
 	@staticmethod
