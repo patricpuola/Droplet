@@ -84,10 +84,37 @@
 			})
 		{% endfor %}
 
-		const edits = document.getElementsByClassName("trigger_edit");
-		for (var i = 0; i < edits.length; i++){
-			edits[i].addEventListener('click', function(e){
-				const cont = this.parentElement;
+		async function postData(url = '', data = {}) {
+			const response = await fetch(url, {
+				method: 'POST',
+				mode: 'cors',
+				cache: 'no-cache',
+				credentials: 'same-origin',
+				headers: {'Content-Type': 'application/json'},
+				redirect: 'follow',
+				referrerPolicy: 'no-referrer',
+				body: JSON.stringify(data)
+			});
+			return response.json();
+		}
+
+		function cancelEdit(trigger_id, revert = false){
+			let trigger_inputs = document.getElementById("trigger_"+trigger_id).getElementsByClassName("trigger_value");
+			for (var j = 0; j < trigger_inputs.length; j++){
+				let id = trigger_inputs[j].id;
+				let value = revert ? trigger_inputs[j].getAttribute("data-original-value") : trigger_inputs[j].value;
+				let span = document.createElement("span");
+				span.id = id;
+				for (k = 0; k < trigger_inputs[j].classList.length; k++){
+					span.classList.add(trigger_inputs[j].classList[k]);
+				}
+				span.innerHTML = value;
+				trigger_inputs[j].replaceWith(span);
+			}
+		}
+
+		function edit_button(e){
+			const cont = this.parentElement;
 				while (cont.firstChild){
 					cont.removeChild(cont.firstChild);
 				}
@@ -98,8 +125,10 @@
 				cont.appendChild(discard);
 				let trigger_values = document.getElementById("trigger_"+trigger_id).getElementsByClassName("trigger_value");
 				for (var j = 0; j < trigger_values.length; j++){
+					let id = trigger_values[j].id;
 					let value = trigger_values[j].innerText;
 					let input = document.createElement('input');
+					input.id = id;
 					input.setAttribute('type', 'number');
 					for (k = 0; k < trigger_values[j].classList.length; k++){
 						input.classList.add(trigger_values[j].classList[k]);
@@ -112,18 +141,32 @@
 
 				discard.addEventListener("click", function(ev){
 					let trigger_id = this.getAttribute("data-trigger-id");
-					let trigger_inputs = document.getElementById("trigger_"+trigger_id).getElementsByClassName("trigger_value");
-					for (var j = 0; j < trigger_inputs.length; j++){
-						let value = trigger_inputs[j].getAttribute("data-original-value");
-						let span = document.createElement("span");
-						for (k = 0; k < trigger_inputs[j].classList.length; k++){
-							span.classList.add(trigger_inputs[j].classList[k]);
-						}
-						span.innerHTML = value;
-						trigger_inputs[j].replaceWith(span);
+					cancelEdit(trigger_id, true);
+					while (cont.firstChild){
+						cont.removeChild(cont.firstChild);
 					}
+					const edit = getButton(['fas','fa-edit'], ['droplet_button'], '', {'data-trigger-id':trigger_id});
+					cont.appendChild(edit);
+					edit.addEventListener('click', edit_button);
 				});
-			})
+
+				
+				save.addEventListener("click", function(ev){
+					let threshold = document.getElementById("threshold_"+trigger_id).value;
+					let amount_ml = document.getElementById("amount_ml_"+trigger_id).value;
+					let wait_period_mins = document.getElementById("wait_period_mins_"+trigger_id).value;
+					post_data = {'trigger_id': trigger_id, 'threshold': threshold, 'amount_ml': amount_ml, 'wait_period_mins': wait_period_mins}
+					postData('/admin/trigger', post_data).then(data => {
+						if (data.success){
+							cancelEdit(trigger_id, false);
+						}
+					});
+				});
+		}
+
+		const edits = document.getElementsByClassName("trigger_edit");
+		for (var i = 0; i < edits.length; i++){
+			edits[i].addEventListener('click', edit_button);
 		}
 	});
 </script>
@@ -197,7 +240,10 @@
 			<tr><th>Threshold</th><th>Amount</th><th>Wait period</th><th></th></tr>
 			{% for trigger in plant['humidity']['triggers'] %}
 			<tr id="trigger_{{ trigger['id'] }}">
-				<td class="threshold"><span class="trigger_value">{{ trigger['threshold'] }}</span></td><td class="amount_ml"><span class="trigger_value">{{ trigger['amount_ml'] }}</span></td><td class="wait_period_mins"><span class="trigger_value">{{ trigger['wait_period_mins'] }}</span></td><td><button type="button" class="trigger_edit droplet_button" data-trigger-id="{{ trigger['id'] }}"><i class="fas fa-edit"></i></button></td>
+				<td class="threshold"><span id="threshold_{{ trigger['id'] }}" class="trigger_value">{{ trigger['threshold'] }}</span></td>
+				<td class="amount_ml"><span id="amount_ml_{{ trigger['id'] }}" class="trigger_value">{{ trigger['amount_ml'] }}</span></td>
+				<td class="wait_period_mins"><span id="wait_period_mins_{{ trigger['id'] }}" class="trigger_value">{{ trigger['wait_period_mins'] }}</span></td>
+				<td><button type="button" class="trigger_edit droplet_button" data-trigger-id="{{ trigger['id'] }}"><i class="fas fa-edit"></i></button></td>
 			</tr>
 			{% endfor %}
 		</tbody>

@@ -28,6 +28,15 @@ def monitor():
 		plants.append(plant)
 	return flask.render_template('index.html', plantdata=plantdata, plants=plants)
 
+@app.route('/admin/trigger', methods=['GET','POST'])
+def triggerUpdate():
+	result = {'success':False, 'data':""}
+	data = flask.request.get_json()
+	if DropletDB.updateTrigger(data['trigger_id'], data['threshold'], data['amount_ml'], data['wait_period_mins']) is True:
+		result['success'] = True
+		result['data'] = 'OK'
+	return result
+
 if __name__ == '__main__':
 	app.debug = True
 	app.run(host="10.10.10.100", port=80)

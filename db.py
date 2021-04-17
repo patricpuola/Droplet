@@ -199,3 +199,12 @@ class DropletDB:
 		for row in plant_rows:
 			plant_ids.append(row[0])
 		return plant_ids
+	
+	@staticmethod
+	def updateTrigger(id, threshold, amount_ml, wait_period_mins):
+		con = DropletDB.get()
+		cur = con.cursor()
+		params = (threshold, amount_ml, wait_period_mins, id)
+		cur.execute("UPDATE triggers SET threshold = ?, amount_ml = ?, wait_period_mins = ? WHERE id = ? LIMIT 1", params)
+		con.commit()
+		return True
